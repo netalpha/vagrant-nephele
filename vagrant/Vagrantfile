@@ -18,7 +18,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       bconfig.vm.hostname = box[:name]
       bconfig.vm.synced_folder ENV['HOME'] + "/Research/nephele-streaming/stratosphere-dist/target/stratosphere-dist-cloudcom-git-bin/stratosphere-cloudcom-git", "/main-nephele"
       bconfig.vm.synced_folder ENV['HOME'] + "/Research/nephele-streaming/nephele/nephele-examples/target/nephele-examples-cloudcom-git-exectuable/nephele-examples-cloudcom-git", "/app-nephele" if box[:name] == 'master'
-
+      bconfig.vm.provision :file, source: ENV['HOME'] + "/.ssh/sg474-eu-ireland.pem", destination: "/main-nephele/bin/sg474-eu-ireland.pem" if box[:name] == 'master'
       # use virtualbox to auto-provision
       bconfig.vm.provider "virtualbox" do |vb, override|
         override.vm.box = "ubuntu/trusty32"
