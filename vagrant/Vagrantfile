@@ -1,0 +1,79 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+boxes = [
+  {:name=> 'master', :ip => '10.0.1.100', :memory => '2gb', :cpus => 1},
+  {:name=> 'slave1', :ip => '10.0.1.101', :memory => '2gb', :cpus => 1},
+  {:name=> 'slave2', :ip => '10.0.1.102', :memory => '2gb', :cpus => 1},
+  {:name=> 'slave3', :ip => '10.0.1.103', :memory => '8gb', :cpus => 1},
+]
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  boxes.each do |box|
+    config.vm.define box[:name] do |bconfig|
+      # common setup to all different providers
+      bconfig.vm.hostname = box[:name]
+      bconfig.vm.synced_folder ENV['HOME'] + "/Research/nephele-streaming/stratosphere-dist/target/stratosphere-dist-cloudcom-git-bin/stratosphere-cloudcom-git", "/main-nephele"
+      bconfig.vm.synced_folder ENV['HOME'] + "/Research/nephele-streaming/nephele/nephele-examples/target/nephele-examples-cloudcom-git-exectuable/nephele-examples-cloudcom-git", "/app-nephele" if box[:name] == 'master'
+
+      # use virtualbox to auto-provision
+      bconfig.vm.provider "virtualbox" do |vb, override|
+        override.vm.box = "ubuntu/trusty32"
+        vb.customize ["modifyvm", :id, "--memory", box[:memory]]
+        vb.customize ["modifyvm", :id, "--cpus", box[:cpus]]
+      end
+
+      # use do to auto-provision
+      bconfig.vm.provider :digital_ocean do |provider, override|
+        override.ssh.private_key_path = '~/.ssh/do-office'
+        override.vm.box = 'digital_ocean'
+        override.vm.box_url = 'https://github.com/smdahlen/vagrant-digitalocean/raw/master/box/digital_ocean.box'
+        override.puppet_install.puppet_version = :latest
+
+        provider.token= ""
+        provider.image = "ubuntu-14-10-x64"
+        provider.private_networking = true
+        provider.region = "lon1"
+        provider.size = '%s' % box[:memory]
+      end
+
+      # use aws to auto-provision
+      bconfig.vm.provider :aws do |aws, override|
+        override.ssh.username = 'ubuntu'
+        override.ssh.private_key_path = ENV['HOME'] + '/.ssh/sg474-eu-ireland.pem'
+        override.vm.box = 'dummy'
+        override.vm.box_url = 'https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box'
+        override.puppet_install.puppet_version = :latest
+
+        # read credentials from environment
+        #aws.access_key_id = "YOUR KEY"
+        #aws.secret_access_key = "YOUR SECRET KEY"
+        #aws.session_token = "SESSION TOKEN"
+        #aws.keypair_name = "KEYPAIR NAME"
+        aws.aws_dir = ENV['HOME'] + "/.aws/"
+        aws.aws_profile = 'default'
+        aws.ami = 'ami-f95ef58a'
+        aws.instance_type = 't2.micro'
+        aws.keypair_name = 'sg474-eu-ireland'
+        aws.tags = {
+          'Name' => box[:name],
+          'role' => box[:name]
+        }
+
+      end
+
+      bconfig.vm.network "private_network", ip: box[:ip]
+
+      bconfig.vm.provision "puppet" do |puppet|
+        puppet.environment_path = 'puppet/environments'
+        puppet.environment = 'development'
+        puppet.manifests_path = 'puppet/environments/development/manifests'
+        puppet.manifest_file  = "site.pp"
+        puppet.module_path = ["~/.puppetlabs/etc/code/modules", "~/.puppet/modules", "./modules"]
+      end
+    end
+  end
+end
