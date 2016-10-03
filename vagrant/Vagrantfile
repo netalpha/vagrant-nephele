@@ -10,14 +10,16 @@ boxes = [
   {:name=> 'slave2', :ip => '10.0.1.102', :memory => '2gb', :cpus => 1},
   {:name=> 'slave3', :ip => '10.0.1.103', :memory => '8gb', :cpus => 1},
 ]
+NEPHELE_HOME = "/Research/nephele-streaming/stratosphere-dist/target/stratosphere-dist-cloudcom-git-bin/stratosphere-cloudcom-git"
+EXAMPlE_HOME = "/Research/nephele-streaming/nephele/nephele-examples/target/nephele-examples-cloudcom-git-exectuable/nephele-examples-cloudcom-git"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   boxes.each do |box|
     config.vm.define box[:name] do |bconfig|
       # common setup to all different providers
       bconfig.vm.hostname = box[:name]
-      bconfig.vm.synced_folder ENV['HOME'] + "/Research/nephele-streaming/stratosphere-dist/target/stratosphere-dist-cloudcom-git-bin/stratosphere-cloudcom-git", "/main-nephele"
-      bconfig.vm.synced_folder ENV['HOME'] + "/Research/nephele-streaming/nephele/nephele-examples/target/nephele-examples-cloudcom-git-exectuable/nephele-examples-cloudcom-git", "/app-nephele" if box[:name] == 'master'
+      bconfig.vm.synced_folder ENV['HOME'] + NEPHELE_HOME, "/main-nephele", type: "rsync", rsync__exclude: NEPHELE_HOME + "/conf/slaves"
+      bconfig.vm.synced_folder ENV['HOME'] + EXAMPlE_HOME, "/app-nephele", type: "rsync" if box[:name] == 'master'
       bconfig.vm.provision :file, source: ENV['HOME'] + "/.ssh/sg474-eu-ireland.pem", destination: "~/.ssh/sg474-eu-ireland.pem" if box[:name] == 'master'
       # use virtualbox to auto-provision
       bconfig.vm.provider "virtualbox" do |vb, override|
