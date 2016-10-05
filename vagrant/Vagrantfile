@@ -58,7 +58,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         #aws.keypair_name = "KEYPAIR NAME"
         aws.aws_dir = ENV['HOME'] + "/.aws/"
         aws.aws_profile = 'default'
-        aws.ami = 'ami-f95ef58a'
+        if box[:name] == 'master'
+          aws.ami = 'ami-2a39b059'
+        else
+          aws.ami = 'ami-f95ef58a'
+        end
         aws.instance_type = 't2.micro'
         aws.keypair_name = 'sg474-eu-ireland'
         aws.tags = {
